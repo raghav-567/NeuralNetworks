@@ -22,7 +22,7 @@ encode = lambda s : [stoi[i] for i in s]
 decode = lambda l : ''.join((itos[i]) for i in l)
 
 
-device = torch.device('mps' if torch.backends.mps.is_available() else 'cpu')
+device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
 
