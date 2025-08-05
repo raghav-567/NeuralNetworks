@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attention Mechanisms Explained</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: #333;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #4a5568;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+        
+        h2 {
+            color: #2d3748;
+            border-bottom: 3px solid #667eea;
+            padding-bottom: 10px;
+            margin-top: 40px;
+        }
+        
+        .attention-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            margin: 20px 0;
+        }
+        
+        .attention-matrix {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            overflow: hidden;
+            background: #f7fafc;
+        }
+        
+        .matrix-title {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+            text-align: center;
+            font-weight: bold;
+            font-size: 1.2em;
+        }
+        
+        .matrix-content {
+            padding: 20px;
+        }
+        
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 0.9em;
+        }
+        
+        th, td {
+            border: 1px solid #cbd5e0;
+            padding: 8px;
+            text-align: center;
+            font-weight: bold;
+        }
+        
+        th {
+            background: #edf2f7;
+            color: #4a5568;
+        }
+        
+        .can-attend {
+            background: #c6f6d5 !important;
+            color: #22543d;
+        }
+        
+        .cannot-attend {
+            background: #fed7d7 !important;
+            color: #742a2a;
+        }
+        
+        .sequence-flow {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin: 20px 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #f0f9ff, #e0f2fe);
+            border-radius: 10px;
+            border-left: 5px solid #0ea5e9;
+        }
+        
+        .token {
+            background: #3b82f6;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 8px;
+            font-weight: bold;
+            margin: 0 5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .arrow {
+            font-size: 2em;
+            color: #6366f1;
+            font-weight: bold;
+        }
+        
+        .comparison-table {
+            width: 100%;
+            margin: 20px 0;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        
+        .comparison-table th {
+            background: linear-gradient(45deg, #667eea, #764ba2);
+            color: white;
+            padding: 15px;
+        }
+        
+        .comparison-table td {
+            padding: 15px;
+            vertical-align: top;
+        }
+        
+        .comparison-table tr:nth-child(even) {
+            background: #f8fafc;
+        }
+        
+        .lstm-flow, .transformer-flow {
+            background: #f8fafc;
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #10b981;
+        }
+        
+        .transformer-flow {
+            border-left-color: #8b5cf6;
+        }
+        
+        .flow-title {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #374151;
+            margin-bottom: 15px;
+        }
+        
+        .parallel-processing {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+            margin: 15px 0;
+        }
+        
+        .processing-step {
+            background: #8b5cf6;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            text-align: center;
+            font-size: 0.9em;
+        }
+        
+        .sequential-processing {
+            display: flex;
+            align-items: center;
+            margin: 15px 0;
+        }
+        
+        .seq-step {
+            background: #10b981;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 0 5px;
+            font-size: 0.9em;
+        }
+        
+        .highlight-box {
+            background: linear-gradient(135deg, #fef3c7, #fcd34d);
+            padding: 20px;
+            border-radius: 10px;
+            margin: 20px 0;
+            border-left: 5px solid #f59e0b;
+        }
+        
+        .example-sentence {
+            text-align: center;
+            font-size: 1.3em;
+            font-weight: bold;
+            color: #1f2937;
+            margin: 20px 0;
+            padding: 15px;
+            background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Attention Mechanisms: Masked vs Unmasked</h1>
+        
+        <div class="example-sentence">
+            Example: "The cat sat on mat" → "Le chat était assis"
+        </div>
+        
+        <h2>1. Unmasked Attention (Encoder)</h2>
+        <p><strong>Key Point:</strong> Each token can attend to ALL other tokens in the sequence (bidirectional).</p>
+        
+        <div class="attention-matrix">
+            <div class="matrix-title">Encoder Self-Attention Matrix</div>
+            <div class="matrix-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Query ↓ / Key →</th>
+                            <th>The</th>
+                            <th>cat</th>
+                            <th>sat</th>
+                            <th>on</th>
+                            <th>mat</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>The</th>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                        </tr>
+                        <tr>
+                            <th>cat</th>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                        </tr>
+                        <tr>
+                            <th>sat</th>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                        </tr>
+                        <tr>
+                            <th>on</th>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                        </tr>
+                        <tr>
+                            <th>mat</th>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><strong>Result:</strong> Rich contextual understanding. "cat" knows about "sat", "mat", etc.</p>
+            </div>
+        </div>
+        
+        <h2>2. Masked Attention (Decoder)</h2>
+        <p><strong>Key Point:</strong> Each token can only attend to previous tokens (causal/autoregressive).</p>
+        
+        <div class="attention-matrix">
+            <div class="matrix-title">Decoder Self-Attention Matrix</div>
+            <div class="matrix-content">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Query ↓ / Key →</th>
+                            <th>&lt;START&gt;</th>
+                            <th>Le</th>
+                            <th>chat</th>
+                            <th>était</th>
+                            <th>assis</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th>&lt;START&gt;</th>
+                            <td class="can-attend">✓</td>
+                            <td class="cannot-attend">✗</td>
+                            <td class="cannot-attend">✗</td>
+                            <td class="cannot-attend">✗</td>
+                            <td class="cannot-attend">✗</td>
+                        </tr>
+                        <tr>
+                            <th>Le</th>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="cannot-attend">✗</td>
+                            <td class="cannot-attend">✗</td>
+                            <td class="cannot-attend">✗</td>
+                        </tr>
+                        <tr>
+                            <th>chat</th>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="cannot-attend">✗</td>
+                            <td class="cannot-attend">✗</td>
+                        </tr>
+                        <tr>
+                            <th>était</th>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="cannot-attend">✗</td>
+                        </tr>
+                        <tr>
+                            <th>assis</th>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                            <td class="can-attend">✓</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <p><strong>Result:</strong> Prevents cheating during training - model can't see future tokens.</p>
+            </div>
+        </div>
+        
+        <h2>3. Why Not LSTM for Encoder?</h2>
+        
+        <table class="comparison-table">
+            <thead>
+                <tr>
+                    <th style="width: 30%;">Aspect</th>
+                    <th style="width: 35%;">LSTM Encoder</th>
+                    <th style="width: 35%;">Transformer Encoder</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><strong>Processing</strong></td>
+                    <td>❌ Sequential (one by one)</td>
+                    <td>✅ Parallel (all at once)</td>
+                </tr>
+                <tr>
+                    <td><strong>Speed</strong></td>
+                    <td>❌ Slow (can't parallelize)</td>
+                    <td>✅ Fast (highly parallelizable)</td>
+                </tr>
+                <tr>
+                    <td><strong>Long Dependencies</strong></td>
+                    <td>❌ Forgets distant information</td>
+                    <td>✅ Direct connections to all positions</td>
+                </tr>
+                <tr>
+                    <td><strong>Context Understanding</strong></td>
+                    <td>❌ Only left-to-right context</td>
+                    <td>✅ Full bidirectional context</td>
+                </tr>
+                <tr>
+                    <td><strong>Memory Usage</strong></td>
+                    <td>✅ Lower memory</td>
+                    <td>❌ Higher memory (attention matrix)</td>
+                </tr>
+            </tbody>
+        </table>
+        
+        <h2>4. Processing Flow Comparison</h2>
+        
+        <div class="lstm-flow">
+            <div class="flow-title">🐌 LSTM Encoder Flow (Sequential)</div>
+            <div class="sequential-processing">
+                <div class="seq-step">Process "The"</div>
+                <span class="arrow">→</span>
+                <div class="seq-step">Process "cat"</div>
+                <span class="arrow">→</span>
+                <div class="seq-step">Process "sat"</div>
+                <span class="arrow">→</span>
+                <div class="seq-step">Process "on"</div>
+                <span class="arrow">→</span>
+                <div class="seq-step">Process "mat"</div>
+            </div>
+            <p><strong>Time Complexity:</strong> O(sequence_length) - Cannot parallelize</p>
+            <p><strong>Context:</strong> "mat" has degraded information about "The"</p>
+        </div>
+        
+        <div class="transformer-flow">
+            <div class="flow-title">⚡ Transformer Encoder Flow (Parallel)</div>
+            <div class="parallel-processing">
+                <div class="processing-step">Process "The"</div>
+                <div class="processing-step">Process "cat"</div>
+                <div class="processing-step">Process "sat"</div>
+                <div class="processing-step">Process "on"</div>
+                <div class="processing-step">Process "mat"</div>
+            </div>
+            <p><strong>Time Complexity:</strong> O(1) - Fully parallelizable</p>
+            <p><strong>Context:</strong> Every token has direct access to every other token</p>
+        </div>
+        
+        <h2>5. Attention Visualization Example</h2>
+        
+        <div class="highlight-box">
+            <h3>When processing "cat":</h3>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-top: 15px;">
+                <div>
+                    <h4>🏗️ LSTM Encoder:</h4>
+                    <ul>
+                        <li>Only sees: "The" → "cat"</li>
+                        <li>No knowledge of "sat", "on", "mat"</li>
+                        <li>Processes left-to-right only</li>
+                        <li>Limited context understanding</li>
+                    </ul>
+                </div>
+                
+                <div>
+                    <h4>🔄 Transformer Encoder:</h4>
+                    <ul>
+                        <li>Sees: ALL tokens simultaneously</li>
+                        <li>Knows "cat" + "sat" (subject-verb)</li>
+                        <li>Knows "cat" + "mat" (semantic relation)</li>
+                        <li>Rich bidirectional context</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <h2>6. Why Masking is Crucial in Training</h2>
+        
+        <div class="sequence-flow">
+            <div style="text-align: center;">
+                <h3>❌ Without Masking (Cheating)</h3>
+                <p>Decoder during training sees: "Le chat était assis"</p>
+                <div>
+                    <span class="token">Le</span>
+                    <span class="arrow">→</span>
+                    <span class="token" style="background: #ef4444;">chat (cheats by seeing future!)</span>
+                </div>
+                <p style="color: #dc2626; margin-top: 10px;">Model learns to copy, not generate!</p>
+            </div>
+        </div>
+        
+        <div class="sequence-flow">
+            <div style="text-align: center;">
+                <h3>✅ With Masking (Proper Training)</h3>
+                <p>Decoder learns step by step:</p>
+                <div>
+                    <span class="token">START</span>
+                    <span class="arrow">→</span>
+                    <span class="token" style="background: #10b981;">Le (only sees START)</span>
+                    <span class="arrow">→</span>
+                    <span class="token" style="background: #10b981;">chat (sees START + Le)</span>
+                </div>
+                <p style="color: #059669; margin-top: 10px;">Model learns proper language generation!</p>
+            </div>
+        </div>
+        
+        <div class="highlight-box">
+            <h3>🎯 Key Takeaways:</h3>
+            <ul>
+                <li><strong>Encoder (Unmasked):</strong> Needs full context to understand input meaning</li>
+                <li><strong>Decoder (Masked):</strong> Must generate tokens sequentially without cheating</li>
+                <li><strong>Transformers > LSTMs:</strong> Parallel processing + better long-range dependencies</li>
+                <li><strong>Self-Attention:</strong> Direct connections between all token pairs</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
